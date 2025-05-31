@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام متابعة الكول سنتر</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .form-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        input[type="text"],
+        input[type="tel"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+        .radio-option {
+            display: flex;
+            align-items: center;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #savedData {
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #2c3e50;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .needs-followup {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .completed {
+            color: #27ae60;
+        }
+        .edit-btn {
+            background-color: #f39c12;
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        .edit-btn:hover {
+            background-color: #d35400;
+        }
+    </style>
+</head>
+<body>
+    <h1>نظام متابعة الكول سنتر</h1>
+    
+    <div class="form-container">
+        <div class="form-group">
+            <label for="customerPhone">رقم العميل (مطلوب):</label>
+            <input type="tel" id="customerPhone" placeholder="ادخل رقم الهاتف">
+        </div>
+        
+        <div class="form-group">
+            <label for="customerName">اسم العميل:</label>
+            <input type="text" id="customerName" placeholder="ادخل اسم العميل">
+        </div>
+        
+        <div class="form-group">
+            <label for="caseDetails">تفاصيل الحالة:</label>
+            <textarea id="caseDetails" placeholder="ادخل تفاصيل المكالمة"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>يحتاج متابعة؟</label>
+            <div class="radio-group">
+                <div class="radio-option">
+                    <input type="radio" name="followUp" id="followUpYes" value="نعم" checked>
+                    <label for="followUpYes">نعم</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" name="followUp" id="followUpNo" value="لا">
+                    <label for="followUpNo">لا</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="saveData()">حفظ البيانات</button>
+            <button onclick="exportToExcel()">تصدير لملف Excel</button>
+        </div>
+    </div>
+    
+    <h2>سجل المكالمات</h2>
+    <div id="savedData"></div>
+
+    <script>
+        // تحميل البيانات عند بدء التشغيل
+        document.addEventListener('DOMContentLoaded', function() {
+            displaySavedData();
+        });
+
+        function saveData() {
+            const customerPhone = document.getElementById('customerPhone').value.trim();
+            if (!customerPhone) {
+                alert("يجب إدخال رقم العميل!");
+                return;
+            }
+            
+            const customerName = document.getElementById('customerName').value.trim();
+            const caseDetails = document.getElementById('caseDetails').value.trim();
+            const followUp = document.querySelector('input[name="followUp"]:checked').value;
+            const timestamp = new Date().toLocaleString();
+            
+            const record = {
+                timestamp,
+                customerPhone,
+                customerName,
+                caseDetails,
+                followUp
+            };
+            
+            // حفظ البيانات في localStorage
+            let records = JSON.parse(localStorage.getItem('callRecords') || [];
+            records.push(record);
+            localStorage.setItem('callRecords', JSON.stringify(records));
+            
+            // عرض تنبيه
+            alert('تم حفظ البيانات بنجاح!');
+            
+            // تحديث عرض البيانات
+            displaySavedData();
+            
+            // مسح الحقول
+            document.getElementById('customerPhone').value = '';
+            document.getElementById('customerName').value = '';
+            document.getElementById('caseDetails').value = '';
+            document.getElementById('followUpYes').checked = true;
+        }
+        
+        function displaySavedData() {
+            const records = JSON.parse(localStorage.getItem('callRecords') || [];
+            let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>رقم العميل</th>
+                        <th>الاسم</th>
+                        <th>التاريخ</th>
+                        <th>تفاصيل الحالة</th>
+                        <th>حالة المتابعة</th>
+                        <th>تعديل</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+            
+            records.forEach((record, index) => {
+                const followupClass = record.followUp === 'نعم' ? 'needs-followup' : 'completed';
+                html += `
+                <tr>
+                    <td>${record.customerPhone}</td>
+                    <td>${record.customerName || '---'}</td>
+                    <td>${record.timestamp}</td>
+                    <td>${record.caseDetails}</td>
+                    <td class="${followupClass}">${record.followUp}</td>
+                    <td><button class="edit-btn" onclick="editRecord(${index})">تعديل</button></td>
+                </tr>`;
+            });
+            
+            html += `
+                </tbody>
+            </table>`;
+            
+            document.getElementById('savedData').innerHTML = records.length > 0 ? html : '<p>لا توجد بيانات مسجلة بعد</p>';
+        }
+        
+        function editRecord(index) {
+            const records = JSON.parse(localStorage.getItem('callRecords') || [];
+            const record = records[index];
+            
+            const newStatus = prompt(`تعديل حالة المتابعة للعميل ${record.customerName || record.customerPhone}\n\nالحالة الحالية: ${record.followUp}\n\nادخل الحالة الجديدة (نعم/لا):`, record.followUp);
+            
+            if (newStatus && ['نعم', 'لا'].includes(newStatus)) {
+                records[index].followUp = newStatus;
+                localStorage.setItem('callRecords', JSON.stringify(records));
+                displaySavedData();
+                alert("تم تحديث حالة المتابعة بنجاح");
+            }
+        }
+        
+        function exportToExcel() {
+            const records = JSON.parse(localStorage.getItem('callRecords') || [];
+            
+            if (records.length === 0) {
+                alert("لا توجد بيانات للتصدير");
+                return;
+            }
+
+            let csvContent = "رقم العميل,اسم العميل,التاريخ,تفاصيل الحالة,حالة المتابعة\n";
+            
+            records.forEach(record => {
+                csvContent += `"${record.customerPhone}","${record.customerName || ''}","${record.timestamp}","${record.caseDetails}","${record.followUp}"\n`;
+            });
+
+            const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `سجل_المكالمات_${new Date().toLocaleDateString('ar-EG')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
